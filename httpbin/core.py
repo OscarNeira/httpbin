@@ -50,6 +50,7 @@ from .helpers import (
     digest_challenge_response,
 )
 from .utils import weighted_choice
+from .utils import delay_action
 from .structures import CaseInsensitiveDict
 
 with open(
@@ -96,14 +97,7 @@ template = {
         "title": "httpbin.org",
         "description": (
             "A simple HTTP Request & Response Service."
-            "<br/> <br/> <b>Run locally: </b> <code>$ docker run -p 80:80 kennethreitz/httpbin</code>"
         ),
-        "contact": {
-            "responsibleOrganization": "Kenneth Reitz",
-            "responsibleDeveloper": "Kenneth Reitz",
-            "email": "me@kennethreitz.org",
-            "url": "https://kennethreitz.org",
-        },
         # "termsOfService": "http://me.com/terms",
         "version": version,
     },
@@ -776,6 +770,60 @@ def view_status_code(codes):
 
     return status_code(code)
 
+@app.route(
+    "/status-delay/<codes>/<delay>", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "TRACE"]
+)
+def view_status_code_delay(codes="codes", delay="delay"):
+    """Return status code same as /status in addition you can add delay to the respose
+    ---
+    tags:
+      - Status codes with delay
+    parameters:
+      - in: path
+        name: codes
+      - in: path
+        name: delay
+        type: int
+    produces:
+      - text/plain
+    responses:
+      100:
+        description: Informational responses
+      200:
+        description: Success
+      300:
+        description: Redirection
+      400:
+        description: Client Errors
+      500:
+        description: Server Errors
+    """
+
+    if "," not in codes:
+        try:
+            code = int(codes)
+        except ValueError:
+            return Response("Invalid status code", status=400)
+        delay_action(delay)    
+        return status_code(code)
+
+    choices = []
+    for choice in codes.split(","):
+        if ":" not in choice:
+            code = choice
+            weight = 1
+        else:
+            code, weight = choice.split(":")
+
+        try:
+            choices.append((int(code), float(weight)))
+        except ValueError:
+            delay_action(delay)
+            return Response("Invalid status code", status=400)
+
+    code = weighted_choice(choices)
+    delay_action(delay)
+    return status_code(code)
 
 @app.route("/response-headers", methods=["GET", "POST"])
 def response_headers():

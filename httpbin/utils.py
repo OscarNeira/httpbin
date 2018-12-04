@@ -9,6 +9,7 @@ Utility functions.
 
 import random
 import bisect
+import time
 
 
 def weighted_choice(choices):
@@ -28,3 +29,10 @@ def weighted_choice(choices):
     x = random.uniform(0, total)
     i = bisect.bisect(cum_weights, x)
     return values[i]
+
+def delay_action(delay):
+    """Added delay to request call
+
+    """
+    delay = min(float(delay), 10)
+    time.sleep(delay)
